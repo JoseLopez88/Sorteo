@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sorteo Amigo Secreto</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            text-align: center;
+        }
+        input, button {
+            margin: 10px 0;
+            padding: 5px;
+            font-size: 16px;
+        }
+        #participantList {
+            list-style-type: none;
+            padding: 0;
+        }
+        #participantList li {
+            margin: 5px 0;
+        }
+        #result, #codeList {
+            margin-top: 20px;
+        }
+        .code-link {
+            display: inline-block;
+            margin: 5px 0;
+            padding: 5px 10px;
+            background-color: #4CAF50;
+            color: white;
+            text-decoration: none;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div id="mainPage">
+        <h1>Sorteo de Amigo Secreto</h1>
+        <input type="text" id="nameInput" placeholder="Ingrese un nombre">
+        <input type="tel" id="phoneInput" placeholder="Ingrese un número de teléfono">
+        <button onclick="addParticipant()">Agregar Participante</button>
+        <ul id="participantList"></ul>
+        <button onclick="drawNames()">Realizar Sorteo</button>
+        <div id="codeList"></div>
+    </div>
+
+    <div id="resultPage" style="display:none;">
+        <h2>Resultado del Sorteo</h2>
+        <input type="text" id="codeInput" placeholder="Ingrese su código">
+        <button onclick="checkCode()">Ver Mi Amigo Secreto</button>
+        <div id="result"></div>
+        <button onclick="goBack()">Volver</button>
+    </div>
+
+    <script>
+        let participants = [];
+        let assignments = {};
+        let codes = {};
+
+        function addParticipant() {
+            const nameInput = document.getElementById('nameInput');
+            const phoneInput = document.getElementById('phoneInput');
+            const name = nameInput.value.trim();
+            const phone = phoneInput.value.trim();
+            if (name && phone) {
+                participants.push({ name, phone });
+                updateParticipantList();
+                nameInput.value = '';
+                phoneInput.value = '';
+            }
+        }
+
+        function updateParticipantList() {
+            const list = document.getElementById('participantList');
+            list.innerHTML = '';
+            participants.forEach(participant => {
+                const li = document.createElement('li');
+                li.textContent = `${participant.name} - ${participant.phone}`;
+                list.appendChild(li);
+            });
+        }
+
+        function drawNames() {
+            if (participants.length < 2) {
+                alert('Se necesitan al menos 2 participantes para realizar el sorteo.');
+                return;
+            }
+
+            let shuffled = [...participants];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
+
+            for (let i = 0; i < participants.length; i++) {
+                assignments[participants[i].name] = shuffled[(i + 1) % participants.length].name;
+                codes[participants[i].name] = generateCode();
+            }
+
+            createCodeList();
+        }
+
+        function generateCode() {
+            return Math.random().toString(36).substr(2, 8).toUpperCase();
+        }
+
+        function createCodeList() {
+            let codeList = document.getElementById('codeList');
+            codeList.innerHTML = 'Códigos para los participantes:<br>';
+            
+            for (let [name, code] of Object.entries(codes)) {
+                let participant = participants.find(p => p.name === name);
+                let message = encodeURIComponent(`Tu código para el sorteo de amigo secreto es: ${code}`);
+                let link = document.createElement('a');
+                link.href = `sms:${participant.phone}?body=${message}`;
+                link.textContent = `Enviar código a ${name}`;
+                link.className = 'code-link';
+                link.target = '_blank';
+                codeList.appendChild(link);
+                codeList.appendChild(document.createElement('br'));
+            }
+        }
+
+        function checkCode() {
+            const codeInput = document.getElementById('codeInput');
+            const code = codeInput.value.trim().toUpperCase();
+            const result = document.getElementById('result');
+
+            for (let [name, savedCode] of Object.entries(codes)) {
+                if (code === savedCode) {
+                    result.textContent = `Hola ${name}, tu amigo secreto es ${assignments[name]}`;
+                    return;
+                }
+            }
+
+            result.textContent = 'Código no válido. Por favor, intente de nuevo.';
+        }
+
+        function goBack() {
+            document.getElementById('mainPage').style.display = 'block';
+            document.getElementById('resultPage').style.display = 'none';
+            document.getElementById('result').textContent = '';
+            document.getElementById('codeInput').value = '';
+        }
+
+        // Agregar enlace para ver resultado
+        const viewResultLink = document.createElement('a');
+        viewResultLink.textContent = 'Ver Mi Resultado';
+        viewResultLink.href = '#';
+        viewResultLink.onclick = function(e) {
+            e.preventDefault();
+            document.getElementById('mainPage').style.display = 'none';
+            document.getElementById('resultPage').style.display = 'block';
+        };
+        document.body.appendChild(viewResultLink);
+    </script>
+</body>
+</html>
